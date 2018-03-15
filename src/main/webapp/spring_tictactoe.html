@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<!--
+@Author Robert Scott
+-->
+<html>
+    <head>
+        <style>
+            #game {width: 600px;  height:400px;}
+            .gameButton {
+                font-family: serif;
+                font-size: 75px;
+                height:100px;
+                width:100px;
+            }
+ 
+           #gameControl{
+            float: left;
+               height:100px;
+               width:200px;
+
+           }
+            
+          #gameBoard{
+              float:right;
+          } 
+          
+          .footnote{
+          clear: left;
+          }
+          
+          .controlButtons {height:50px;width:200px;background-color:#66ccff}
+          .hiddenButton{height: 50px;width:200px;visibility:hidden}
+          
+        </style>       
+        <title>TIC-TAC-TOE</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head> 
+    <body onload="start()">
+    <script>
+        var you='X'; //which player is the user
+        var player='X';
+        var xget = new XMLHttpRequest();   
+        var game=['-','-','-','-','-','-','-','-','-'];
+        var localOnly=false;
+        var moves=0;
+        var winRow;
+        var gameOver=false;
+        var pending=false;
+        
+    function start(){
+            moves=0;
+            localOnly=false;
+            gameOver=false;
+            game=['-','-','-','-','-','-','-','-','-'];
+            document.getElementById('status').innerHTML='Ready';
+            document.getElementById('status').style.color = '';
+            document.getElementById('server').disabled=false;
+            var i;
+            for (i=0;i<9;i++){ //reset all the buttons text{
+                document.getElementById(i.toString()).innerHTML='-';
+                document.getElementById(i.toString()).style.color='';
+            }
+    }
+ 
+ 
+    
+   function start0(){
+	   if (pending)
+		   return;
+       you = (you==='X')? 'O':'X'; //toggle sides,  
+       start(); //clears the board
+       if (you==='O')
+    	   doGet();
+    }
+   
+   function start1(){
+	   if (pending)
+		   return;
+       start(); //clears the board
+       you='X';
+    }
+    function start2(){
+ 	   if (pending)
+		   return;
+        start(); //clears the board
+        doGet();
+        you='O';
+    }
+    
+    function start3(){
+ 	   if (pending)
+		   return;
+       start();
+       localOnly=true;
+       document.getElementById('server').disabled=false;
+   }
+       
+   function server_move(){
+	   if (pending)
+		   return;
+       if (gameOver)
+           alert('Game Over. Click "NEW GAME" to play again');
+       else{
+           localOnly=true;
+           doGet();
+       }
+    }
+    
+    function setWinner(sq1,sq2,sq3){
+      var winMessage;
+      document.getElementById(sq1.toString()).style.color = 'red';
+      document.getElementById(sq2.toString()).style.color='red';
+      document.getElementById(sq3.toString()).style.color='red';
+      if (localOnly) 
+          winMessage="Player "+game[sq1]+" WINS";
+      else if (game[sq1]===you)
+          winMessage = "YOU WIN";
+      else winMessage = "SERVER WINS";
+      document.getElementById('status').innerHTML='Game Over: '+winMessage;
+      document.getElementById('status').style.color = 'red';
+      gameOver=true;
+  }
+
+    function checkWinner(player){
+        if (moves<5) return; //can't have a winner in the first 5 moves
+        if (game[0]===player && game[1]===player && game[2]===player)
+           setWinner(0,1,2);
+        else if (game[3]===player&&game[4]===player&&game[5]===player)
+            setWinner(3,4,5);
+        else if (game[6]===player&&game[7]===player&&game[8]===player)
+            setWinner(6,7,8);
+        else if (game[0]===player&&game[3]===player&&game[6]===player)
+            setWinner(0,3,6);
+        else if (game[1]===player&&game[4]===player&&game[7]===player)
+            setWinner(1,4,7);
+        else if (game[2]===player&&game[5]===player&&game[8]===player)
+            setWinner(2,5,8);
+        else if (game[0]===player&&game[4]===player&&game[8]===player)
+            setWinner(0,4,8);
+        else if (game[2]===player&&game[4]===player&&game[6]===player)
+            setWinner(2,4,6);
+        else if (moves===9){
+           document.getElementById('status').innerHTML='GAME OVER - TIE';
+           document.getElementById('status').style.color = 'red';
+           gameOver=true;
+       }
+   }
+    function doMove(m){
+        if ((moves%2)===0) 
+            player='X';
+        else
+            player='O';
+        document.getElementById(m).innerHTML = player;
+        game[Number(m)]=player;
+        moves++;
+        checkWinner(player); 
+        player = (player==='X')? 'O':'X'; //toggle player after each move.
+    }
+    
+    
+    function doGet(){
+            xget.onreadystatechange = function() { 
+                if (xget.readyState === 4 && xget.status === 200) {
+                    var o=xget.responseText.toString().trim(); //server square
+                    doMove(o);
+                    pending=false;
+                }
+                else
+                    if (xget.readyState===4) {
+                        alert('server error '+xget.status);
+                    	pending=false;
+                    }
+            };
+            var url = 'TicTacToe?game=' + JSON.stringify(game);
+            pending=true;
+            xget.open('get', url, true);
+            xget.send();
+    }
+    
+
+        function bc(el){   
+            if (gameOver){
+                alert('Game Over. Click "NEW GAME" to play again');
+                return;
+            }
+            if (pending) return; //ignore the button if waiting on server response
+            
+            if (el.innerHTML==="-"){
+            	
+                doMove(Number(el.id));
+                if ((!localOnly)&&(!gameOver)) {
+                	doGet();
+                }               
+            }
+        }       
+    </script>   
+
+    <div id='game' >
+
+        <div id='gameControl'>
+        <h4>Play TicTacToe</h4>
+        <button id='newgame0' class='controlButtons' onclick="start0()">NEW GAME<br>alternate sides</button>
+        <button id='newgame1' class='controlButtons' onclick="start1()">NEW GAME<br/>I start</button>
+        <button id='newgame2' class='controlButtons' onclick="start2()">NEW GAME<br/>server starts</button>
+        <button class='hiddenButton' disabled>invisible spacer</button>
+
+        <button id='local' class='controlButtons' onclick="start3()">NEW GAME<br/>local only</button>
+        <button id='server' class='controlButtons' disabled onclick="server_move()">GET SERVER MOVE</button>
+        </div>
+        <div id='gameBoard' >
+        <h4 id='status'>Ready</h4>
+        <button id='0' class="gameButton" onclick="bc(this)">-</button>
+        <button id='1' class="gameButton" onclick="bc(this)">-</button>
+        <button id='2' class="gameButton" onclick="bc(this)">-</button>
+        <br>
+        <button id='3' class="gameButton" onclick="bc(this)">-</button>
+        <button id='4' class="gameButton" onclick="bc(this)">-</button>
+        <button id='5' class="gameButton" onclick="bc(this)">-</button>
+        <br>
+        <button id='6' class="gameButton" onclick="bc(this)">-</button>
+        <button id='7' class="gameButton" onclick="bc(this)">-</button>
+        <button id='8' class="gameButton" onclick="bc(this)">-</button>
+        <br><br>
+    </div>
+     </div>
+    <DIV class='footnote'>
+    <h4>Online Tic-Tac-Toe by Robert Scott</h4>
+    A sample REST web application using J2ee Servlet, HTML, JavaScript, Ajax<br> 
+    <a href="https://bitbucket.org/robscott57/tictactoe/src">Source on BitBucket</a>
+    </DIV>
+
+    </body>
+</html>
